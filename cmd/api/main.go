@@ -19,7 +19,5 @@ func main() {
 		log.Fatal("Failed to set trusted proxies: ", err)
 	}
 	routes.SetupRoutes(router)
-
-	log.Println("Server running on port", config.AppConfig.Port)
 	router.Run(":" + config.AppConfig.Port)
 }
