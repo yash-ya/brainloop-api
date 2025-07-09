@@ -1,7 +1,21 @@
 package main
 
-import "log"
+import (
+	"brainloop-api/pkg/config"
+	"brainloop-api/pkg/routes"
+	"log"
+
+	"github.com/gin-gonic/gin"
+)
+
+func init() {
+	config.LoadConfig()
+}
 
 func main() {
-	log.Println("Hello World!")
+	router := gin.Default()
+	routes.SetupRoutes(router)
+
+	log.Println("Server running on port", config.AppConfig.Port)
+	router.Run(":" + config.AppConfig.Port)
 }
