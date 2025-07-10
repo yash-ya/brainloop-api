@@ -2,14 +2,11 @@
 
 # --- Builder Stage ---
 # This stage compiles the Go application into a static binary.
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy go.mod and go.sum to download dependencies first
-# This leverages Docker's layer caching. Dependencies will only be re-downloaded
-# if go.mod or go.sum changes.
+# Copy go.mod and go.sum to leverage Docker's layer caching.
 COPY go.mod go.sum ./
 RUN go mod download
 
@@ -17,25 +14,22 @@ RUN go mod download
 COPY . .
 
 # Build the application.
-# -o /app/main specifies the output file path.
-# CGO_ENABLED=0 creates a static binary, which is crucial for a minimal final image.
 # -ldflags="-w -s" strips debugging information, reducing the binary size.
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/main ./cmd/api
+# ./cmd/api is more specific and safer for future growth.
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/brainloop-api ./cmd/api
+
 
 # --- Final Stage ---
-# This stage creates the final, lightweight image for production.
-FROM alpine:latest
+# Use Google's distroless image for a minimal and secure final image.
+FROM gcr.io/distroless/static:nonroot
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the compiled binary from the 'builder' stage
-COPY --from=builder /app/main .
+# Copy only the compiled binary from the 'builder' stage
+COPY --from=builder /app/brainloop-api .
 
 # Expose the port that the application will listen on.
-# Railway will use this to route traffic to your service.
 EXPOSE 8080
 
 # Set the command to run when the container starts.
-# This executes the compiled application.
-CMD ["/app/main"]
+CMD ["/app/brainloop-api"]
