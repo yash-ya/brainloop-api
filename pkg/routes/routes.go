@@ -16,25 +16,28 @@ func SetupRoutes(router *gin.Engine) {
 		})
 	})
 
-	api := router.Group("/api/v1")
+	apiV1 := router.Group("/api/v1")
 	{
-		api.GET("/health", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"status": "OK", "message": "Healthy"})
+		apiV1.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"status": "OK", "message": "API is healthy"})
 		})
-		auth := api.Group("/auth")
+
+		authRoutes := apiV1.Group("/auth")
 		{
-			auth.POST("/register", handlers.Register)
-			auth.POST("/login", handlers.Login)
+			authRoutes.POST("/register", handlers.Register)
+			authRoutes.POST("/login", handlers.Login)
 		}
 
-		protected := api.Group("/")
-		protected.Use(middleware.AuthMiddleware())
+		protectedRoutes := apiV1.Group("/")
+		protectedRoutes.Use(middleware.AuthMiddleware())
 		{
-			questions := protected.Group("/questions")
+			questionRoutes := protectedRoutes.Group("/questions")
 			{
-				questions.POST("", handlers.CreateQuestion)
-				questions.GET("", handlers.GetQuestions)
-				questions.GET("/:id", handlers.GetQuestionByID)
+				questionRoutes.POST("", handlers.CreateQuestion)       // POST /api/v1/questions
+				questionRoutes.GET("", handlers.GetQuestions)          // GET /api/v1/questions
+				questionRoutes.GET("/:id", handlers.GetQuestionByID)   // GET /api/v1/questions/:id
+				questionRoutes.PUT("/:id", handlers.UpdateQuestion)    // PUT /api/v1/questions/:id
+				questionRoutes.DELETE("/:id", handlers.DeleteQuestion) // DELETE /api/v1/questions/:id
 			}
 		}
 	}

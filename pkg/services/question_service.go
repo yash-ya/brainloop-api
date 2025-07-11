@@ -4,6 +4,7 @@ import (
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/repositories"
 	"brainloop-api/pkg/utils"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -15,28 +16,48 @@ func CreateQuestion(question *models.Question, userID uint) *models.ErrorRespons
 	err := repositories.CreateQuestion(question)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			return utils.SendError(http.StatusConflict, "DUPLICATE_QUESTION", "A question with this title already exists.")
+			return utils.SendError(http.StatusConflict, "DUPLICATE_QUESTION", "A question with this title already exists for this user.")
 		}
 		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to save question to the database.")
 	}
 	return nil
 }
 
-func GetQuestions(userId uint, status, difficulty string) (*[]models.Question, *models.ErrorResponse) {
-	questions, err := repositories.GetQuestions(userId, status, difficulty)
+func GetQuestions(userID uint, status, difficulty string) ([]models.Question, *models.ErrorResponse) {
+	questions, err := repositories.GetQuestions(userID, status, difficulty)
 	if err != nil {
 		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to retrieve questions from the database.")
 	}
 	return questions, nil
 }
 
-func GetQuestionByID(userId uint, questionID uint) (*models.Question, *models.ErrorResponse) {
-	questions, err := repositories.GetQuestionByID(userId, questionID)
+func GetQuestionByID(userID, questionID uint) (*models.Question, *models.ErrorResponse) {
+	question, err := repositories.GetQuestionByID(userID, questionID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, utils.SendError(http.StatusNotFound, "QUESTION_NOT_FOUND", "No question found with this ID for the current user.")
-		}
-		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to retrieve question from the database.")
+		return nil, handleRepositoryError(err, "question")
 	}
-	return questions, nil
+	return question, nil
+}
+
+func UpdateQuestion(userID, questionID uint, input *models.UpdateQuestion) *models.ErrorResponse {
+	err := repositories.UpdateQuestion(userID, questionID, input)
+	if err != nil {
+		return handleRepositoryError(err, "question")
+	}
+	return nil
+}
+
+func DeleteQuestion(userID, questionID uint) *models.ErrorResponse {
+	err := repositories.DeleteQuestion(userID, questionID)
+	if err != nil {
+		return handleRepositoryError(err, "question")
+	}
+	return nil
+}
+
+func handleRepositoryError(err error, resourceName string) *models.ErrorResponse {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return utils.SendError(http.StatusNotFound, "NOT_FOUND", "No "+resourceName+" found with this ID for the current user.")
+	}
+	return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "A database error occurred on resource: "+resourceName)
 }

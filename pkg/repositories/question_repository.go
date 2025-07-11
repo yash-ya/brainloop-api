@@ -3,14 +3,17 @@ package repositories
 import (
 	"brainloop-api/pkg/database"
 	"brainloop-api/pkg/models"
+
+	"gorm.io/gorm"
 )
 
 func CreateQuestion(question *models.Question) error {
-	result := database.DB.Create(question)
+	db := database.GetDB()
+	result := db.Create(question)
 	return result.Error
 }
 
-func GetQuestions(userID uint, status, difficulty string) (*[]models.Question, error) {
+func GetQuestions(userID uint, status, difficulty string) ([]models.Question, error) {
 	db := database.GetDB()
 	result := db.Where("user_id = ?", userID)
 
@@ -27,10 +30,10 @@ func GetQuestions(userID uint, status, difficulty string) (*[]models.Question, e
 		return nil, err
 	}
 
-	return &questions, nil
+	return questions, nil
 }
 
-func GetQuestionByID(userID uint, questionID uint) (*models.Question, error) {
+func GetQuestionByID(userID, questionID uint) (*models.Question, error) {
 	db := database.GetDB()
 	var question models.Question
 	result := db.Where("user_id = ? AND id = ?", userID, questionID).First(&question)
@@ -40,4 +43,36 @@ func GetQuestionByID(userID uint, questionID uint) (*models.Question, error) {
 	}
 
 	return &question, nil
+}
+
+func UpdateQuestion(userID, questionID uint, input *models.UpdateQuestion) error {
+	db := database.GetDB()
+	result := db.Model(&models.Question{}).
+		Where("user_id = ? AND id = ?", userID, questionID).
+		Updates(input)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func DeleteQuestion(userID, questionID uint) error {
+	db := database.GetDB()
+	result := db.Where("user_id = ? AND id = ?", userID, questionID).Delete(&models.Question{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }
