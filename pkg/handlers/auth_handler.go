@@ -23,9 +23,8 @@ func Register(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"success":    true,
-		"statusCode": http.StatusCreated,
-		"message":    "User registered successfully!",
+		"success": true,
+		"message": "User registered successfully!",
 	})
 }
 

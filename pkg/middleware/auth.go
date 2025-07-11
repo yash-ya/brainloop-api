@@ -54,7 +54,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user_id", claims.UserID)
+		ctx.Set("userID", claims.UserID)
 		ctx.Next()
 	}
 }
