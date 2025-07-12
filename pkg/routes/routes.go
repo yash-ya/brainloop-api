@@ -46,7 +46,7 @@ func SetupRoutes(router *gin.Engine) {
 				revisionRoutes.POST("", handlers.LogRevision) // POST /api/v1/revisions
 			}
 
-			tagRoutes := protectedRoutes.Group("/tag")
+			tagRoutes := protectedRoutes.Group("/tags")
 			{
 				tagRoutes.GET("", handlers.GetAllTags)
 				tagRoutes.POST("/:name", handlers.CreateTag)
