@@ -4,7 +4,6 @@ import (
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/services"
 	"brainloop-api/pkg/utils"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -135,15 +134,13 @@ func getUserIDFromContext(ctx *gin.Context) (uint, bool) {
 		return 0, false
 	}
 
-	log.Printf("UserID Context-%s", userIDContext)
-	userIDFloat, ok := userIDContext.(float64)
-	log.Printf("UserID Float-%f", userIDFloat)
+	userID, ok := userIDContext.(uint)
 	if !ok {
-		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID format")
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_USER_ID", "User ID in context is not of type uint")
 		return 0, false
 	}
 
-	return uint(userIDFloat), true
+	return userID, true
 }
 
 func getQuestionIDFromParam(ctx *gin.Context) (uint, bool) {
