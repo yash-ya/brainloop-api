@@ -26,7 +26,7 @@ func GetQuestions(userID uint, status, difficulty string) ([]models.Question, er
 	}
 
 	var questions []models.Question
-	if err := result.Preload("Tags").Find(&questions).Error; err != nil {
+	if err := result.Preload("Tags").Preload("Revisions").Find(&questions).Error; err != nil {
 		return nil, err
 	}
 
@@ -36,7 +36,8 @@ func GetQuestions(userID uint, status, difficulty string) ([]models.Question, er
 func GetQuestionByID(userID, questionID uint) (*models.Question, error) {
 	db := database.GetDB()
 	var question models.Question
-	result := db.Where("user_id = ? AND id = ?", userID, questionID).First(&question)
+
+	result := db.Preload("Tags").Preload("Revisions").Where("user_id = ? AND id = ?", userID, questionID).First(&question)
 
 	if result.Error != nil {
 		return nil, result.Error

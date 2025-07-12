@@ -33,11 +33,17 @@ func SetupRoutes(router *gin.Engine) {
 		{
 			questionRoutes := protectedRoutes.Group("/questions")
 			{
-				questionRoutes.POST("", handlers.CreateQuestion)       // POST /api/v1/questions
-				questionRoutes.GET("", handlers.GetQuestions)          // GET /api/v1/questions
-				questionRoutes.GET("/:id", handlers.GetQuestionByID)   // GET /api/v1/questions/:id
-				questionRoutes.PUT("/:id", handlers.UpdateQuestion)    // PUT /api/v1/questions/:id
-				questionRoutes.DELETE("/:id", handlers.DeleteQuestion) // DELETE /api/v1/questions/:id
+				questionRoutes.POST("", handlers.CreateQuestion)                     // POST /api/v1/questions
+				questionRoutes.GET("", handlers.GetQuestions)                        // GET /api/v1/questions
+				questionRoutes.GET("/:id", handlers.GetQuestionByID)                 // GET /api/v1/questions/:id
+				questionRoutes.PUT("/:id", handlers.UpdateQuestion)                  // PUT /api/v1/questions/:id
+				questionRoutes.DELETE("/:id", handlers.DeleteQuestion)               // DELETE /api/v1/questions/:id
+				questionRoutes.GET("/:id/revisions", handlers.GetAllRevisionHistory) // GET /api/v1/questions/:id/revisions
+			}
+
+			revisionRoutes := protectedRoutes.Group("/revisions")
+			{
+				revisionRoutes.POST("", handlers.LogRevision) // POST /api/v1/revisions
 			}
 		}
 	}

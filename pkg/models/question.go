@@ -27,6 +27,7 @@ type Question struct {
 
 type RevisionHistory struct {
 	gorm.Model
-	QuestionID uint      `gorm:"not null"`
+	QuestionID uint `gorm:"not null"`
+	TimeTaken  string
 	RevisedAt  time.Time `gorm:"not null"`
 }
