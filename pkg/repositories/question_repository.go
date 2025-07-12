@@ -9,8 +9,17 @@ import (
 
 func CreateQuestion(question *models.Question) error {
 	db := database.GetDB()
-	result := db.Create(question)
-	return result.Error
+	err := db.Omit("Tags").Create(question).Error
+	if err != nil {
+		return err
+	}
+	if len(question.Tags) > 0 {
+		err = db.Model(&question).Association("Tags").Append(question.Tags)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func GetQuestions(userID uint, status, difficulty string) ([]models.Question, error) {
