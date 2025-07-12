@@ -13,7 +13,12 @@ import (
 
 func CreateQuestion(question *models.Question, userID uint) *models.ErrorResponse {
 	question.UserID = userID
-	err := repositories.CreateQuestion(question)
+	processedTags, err := repositories.FindOrCreateTags(question.Tags)
+	if err != nil {
+		return utils.SendError(http.StatusInternalServerError, "TAG_PROCESSING_ERROR", "Failed to process tags.")
+	}
+	question.Tags = processedTags
+	err = repositories.CreateQuestion(question)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
 			return utils.SendError(http.StatusConflict, "DUPLICATE_QUESTION", "A question with this title already exists for this user.")
@@ -40,10 +45,16 @@ func GetQuestionByID(userID, questionID uint) (*models.Question, *models.ErrorRe
 }
 
 func UpdateQuestion(userID, questionID uint, input *models.UpdateQuestion) *models.ErrorResponse {
-	err := repositories.UpdateQuestion(userID, questionID, input)
+	processedTags, err := repositories.FindOrCreateTags(input.Tags)
 	if err != nil {
-		return handleRepositoryError(err, "question")
+		return utils.SendError(http.StatusInternalServerError, "TAG_PROCESSING_ERROR", "Failed to process tags.")
 	}
+	input.Tags = processedTags
+	err = repositories.UpdateQuestion(userID, questionID, input)
+	if err != nil {
+		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to update question.")
+	}
+
 	return nil
 }
 

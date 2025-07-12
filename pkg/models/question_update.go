@@ -8,4 +8,5 @@ type UpdateQuestion struct {
 	Status     string `json:"status"`
 	Difficulty string `json:"difficulty"`
 	Notes      string `json:"notes"`
+	Tags       []*Tag `json:"tags"`
 }
