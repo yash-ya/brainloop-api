@@ -28,6 +28,12 @@ func SetupRoutes(router *gin.Engine) {
 			authRoutes.POST("/login", handlers.Login)
 		}
 
+		tagRoutes := apiV1.Group("/tag")
+		{
+			tagRoutes.GET("", handlers.GetAllTags)
+			tagRoutes.POST("/:name", handlers.CreateTag)
+		}
+
 		protectedRoutes := apiV1.Group("/")
 		protectedRoutes.Use(middleware.AuthMiddleware())
 		{

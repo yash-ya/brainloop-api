@@ -5,6 +5,12 @@ import (
 	"brainloop-api/pkg/models"
 )
 
+func FindOrCreateTag(tag *models.Tag) error {
+	db := database.GetDB()
+	result := db.Where("name = ?", tag.Name).FirstOrCreate(&tag)
+	return result.Error
+}
+
 func FindOrCreateTags(tags []*models.Tag) ([]*models.Tag, error) {
 	db := database.GetDB()
 	var processedTags []*models.Tag
@@ -21,4 +27,11 @@ func FindOrCreateTags(tags []*models.Tag) ([]*models.Tag, error) {
 	}
 
 	return processedTags, nil
+}
+
+func GetAllTags() ([]*models.Tag, error) {
+	db := database.GetDB()
+	var tags []*models.Tag
+	err := db.Find(&tags).Error
+	return tags, err
 }
