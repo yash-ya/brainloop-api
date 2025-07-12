@@ -137,7 +137,7 @@ func getUserIDFromContext(ctx *gin.Context) (uint, bool) {
 
 	log.Printf("UserID Context-%s", userIDContext)
 	userIDFloat, ok := userIDContext.(float64)
-	log.Printf("UserID Float-%s", userIDFloat)
+	log.Printf("UserID Float-%f", userIDFloat)
 	if !ok {
 		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user ID format")
 		return 0, false
