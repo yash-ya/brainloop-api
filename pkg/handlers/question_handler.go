@@ -22,16 +22,13 @@ func CreateQuestion(ctx *gin.Context) {
 		return
 	}
 
-	errResp := services.CreateQuestion(&question, userID)
+	createdQuestion, errResp := services.CreateQuestion(&question, userID)
 	if errResp != nil {
 		ctx.JSON(errResp.StatusCode, errResp)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"message": "Question created successfully!",
-	})
+	ctx.JSON(http.StatusCreated, createdQuestion)
 }
 
 func GetQuestions(ctx *gin.Context) {
@@ -89,22 +86,22 @@ func UpdateQuestion(ctx *gin.Context) {
 		return
 	}
 
-	var input models.UpdateQuestion
-	if err := ctx.ShouldBindJSON(&input); err != nil {
+	var questionUpdates models.Question
+	if err := ctx.ShouldBindJSON(&questionUpdates); err != nil {
 		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request format: "+err.Error())
 		return
 	}
 
-	errResp := services.UpdateQuestion(userID, questionID, &input)
+	questionUpdates.ID = questionID
+	questionUpdates.UserID = userID
+
+	updatedQuestion, errResp := services.UpdateQuestion(&questionUpdates)
 	if errResp != nil {
 		ctx.JSON(errResp.StatusCode, errResp)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Question updated successfully!",
-	})
+	ctx.JSON(http.StatusOK, updatedQuestion)
 }
 
 func DeleteQuestion(ctx *gin.Context) {

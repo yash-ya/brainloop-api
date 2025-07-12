@@ -46,21 +46,24 @@ func GetQuestionByID(userID, questionID uint) (*models.Question, error) {
 	return &question, nil
 }
 
-func UpdateQuestion(userID, questionID uint, input *models.UpdateQuestion) error {
+func UpdateQuestion(question *models.Question) (*models.Question, error) {
 	db := database.GetDB()
-	result := db.Model(&models.Question{}).
-		Where("user_id = ? AND id = ?", userID, questionID).
-		Updates(input)
-
-	if result.Error != nil {
-		return result.Error
+	err := db.Model(&question).Omit("Tags").Updates(question).Error
+	if err != nil {
+		return nil, err
+	}
+	err = db.Model(&question).Association("Tags").Replace(question.Tags)
+	if err != nil {
+		return nil, err
 	}
 
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	var updatedQuestion models.Question
+	err = db.Preload("Tags").Preload("Revisions").First(&updatedQuestion, question.ID).Error
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &updatedQuestion, nil
 }
 
 func DeleteQuestion(userID, questionID uint) error {

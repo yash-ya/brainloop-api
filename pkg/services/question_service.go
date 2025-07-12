@@ -11,21 +11,26 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateQuestion(question *models.Question, userID uint) *models.ErrorResponse {
+func CreateQuestion(question *models.Question, userID uint) (*models.Question, *models.ErrorResponse) {
 	question.UserID = userID
 	processedTags, err := repositories.FindOrCreateTags(question.Tags)
 	if err != nil {
-		return utils.SendError(http.StatusInternalServerError, "TAG_PROCESSING_ERROR", "Failed to process tags.")
+		return nil, utils.SendError(http.StatusInternalServerError, "TAG_PROCESSING_ERROR", "Failed to process tags.")
 	}
 	question.Tags = processedTags
 	err = repositories.CreateQuestion(question)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			return utils.SendError(http.StatusConflict, "DUPLICATE_QUESTION", "A question with this title already exists for this user.")
+			return nil, utils.SendError(http.StatusConflict, "DUPLICATE_QUESTION", "A question with this title already exists for this user.")
 		}
-		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to save question to the database.")
+		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to save question to the database.")
 	}
-	return nil
+	fullQuestion, err := repositories.GetQuestionByID(question.UserID, question.ID)
+	if err != nil {
+		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to retrieve newly created question.")
+	}
+
+	return fullQuestion, nil
 }
 
 func GetQuestions(userID uint, status, difficulty string) ([]models.Question, *models.ErrorResponse) {
@@ -44,18 +49,18 @@ func GetQuestionByID(userID, questionID uint) (*models.Question, *models.ErrorRe
 	return question, nil
 }
 
-func UpdateQuestion(userID, questionID uint, input *models.UpdateQuestion) *models.ErrorResponse {
-	processedTags, err := repositories.FindOrCreateTags(input.Tags)
+func UpdateQuestion(questionUpdates *models.Question) (*models.Question, *models.ErrorResponse) {
+	processedTags, err := repositories.FindOrCreateTags(questionUpdates.Tags)
 	if err != nil {
-		return utils.SendError(http.StatusInternalServerError, "TAG_PROCESSING_ERROR", "Failed to process tags.")
+		return nil, utils.SendError(http.StatusInternalServerError, "TAG_PROCESSING_ERROR", "Failed to process tags.")
 	}
-	input.Tags = processedTags
-	err = repositories.UpdateQuestion(userID, questionID, input)
+	questionUpdates.Tags = processedTags
+	updatedQuestion, err := repositories.UpdateQuestion(questionUpdates)
 	if err != nil {
-		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to update question.")
+		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to update question.")
 	}
 
-	return nil
+	return updatedQuestion, nil
 }
 
 func DeleteQuestion(userID, questionID uint) *models.ErrorResponse {
