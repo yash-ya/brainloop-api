@@ -51,7 +51,9 @@ func LoginUser(email, password string) (*models.Token, *models.ErrorResponse) {
 	expirationTimeUTC := time.Now().UTC().Add(time.Duration(expirationInHours) * time.Hour)
 
 	claims := &models.JWTClaims{
-		UserID: user.ID,
+		UserID:    user.ID,
+		Username:  user.Username,
+		UserEmail: user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTimeUTC),
 		},
