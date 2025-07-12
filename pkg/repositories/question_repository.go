@@ -26,7 +26,7 @@ func GetQuestions(userID uint, status, difficulty string) ([]models.Question, er
 	}
 
 	var questions []models.Question
-	if err := result.Find(&questions).Error; err != nil {
+	if err := result.Preload("Tags").Find(&questions).Error; err != nil {
 		return nil, err
 	}
 
