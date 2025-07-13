@@ -3,6 +3,7 @@ package repositories
 import (
 	"brainloop-api/pkg/database"
 	"brainloop-api/pkg/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -55,6 +56,19 @@ func GetQuestionByID(userID, questionID uint) (*models.Question, error) {
 	return &question, nil
 }
 
+func GetQuestionForRevision(questionID uint) (*models.Question, error) {
+	db := database.GetDB()
+	var question models.Question
+
+	result := db.Preload("Tags").Preload("Revisions").Where("id = ?", questionID).First(&question)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &question, nil
+}
+
 func UpdateQuestion(question *models.Question) (*models.Question, error) {
 	db := database.GetDB()
 	err := db.Model(&question).Omit("Tags").Updates(question).Error
@@ -73,6 +87,17 @@ func UpdateQuestion(question *models.Question) (*models.Question, error) {
 	}
 
 	return &updatedQuestion, nil
+}
+
+func UpdateQuestionSchedule(questionID uint, newSRSLevel int, nextDate *time.Time) error {
+	db := database.GetDB()
+	updates := map[string]interface{}{
+		"srs_level":          newSRSLevel,
+		"next_revision_date": nextDate,
+	}
+
+	result := db.Model(&models.Question{}).Where("id = ?", questionID).Updates(updates)
+	return result.Error
 }
 
 func DeleteQuestion(userID, questionID uint) error {

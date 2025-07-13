@@ -19,3 +19,10 @@ func GetAllRevisionHistory(questionID uint) ([]models.RevisionHistory, error) {
 	}
 	return history, nil
 }
+
+func CountRevisionsForQuestion(questionID uint) (int64, error) {
+	db := database.GetDB()
+	var count int64
+	result := db.Model(&models.RevisionHistory{}).Where("question_id = ?", questionID).Count(&count)
+	return count, result.Error
+}
