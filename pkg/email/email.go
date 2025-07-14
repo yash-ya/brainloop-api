@@ -36,7 +36,7 @@ func SendVerificationEmail(toEmail, token string) error {
 	</html>
 	`
 	m := mail.NewMessage()
-	m.SetHeader("From", fmt.Sprintf("BrainLoop <%s>", config.AppConfig.SMTPUsername))
+	m.SetHeader("From", "BrainLoop <noreply.brainloop@midaytech.com>")
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", "Verify Your Email for BrainLoop")
 	m.SetBody("text/html", htmlBody)
