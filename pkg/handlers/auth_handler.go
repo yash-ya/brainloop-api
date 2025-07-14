@@ -5,13 +5,17 @@ import (
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/services"
 	"brainloop-api/pkg/utils"
+	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+const GoogleUserInfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 func Register(ctx *gin.Context) {
 	var user models.User
@@ -69,12 +73,33 @@ func GoogleCallback(ctx *gin.Context) {
 		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_SESSION", "Invalid session state. Cookie not found.")
 		return
 	}
-
 	if stateFromURL != stateFromCookie {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid state parameter. CSRF attack suspected."})
+		utils.SendContextError(ctx, http.StatusUnauthorized, "INVALID_LOGIN", "Invalid state parameter. CSRF attack suspected.")
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "State verified successfully!"})
+
+	code := ctx.Query("code")
+	token, err := config.AppConfig.GoogleLoginConfig.Exchange(context.Background(), code)
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusUnauthorized, "INVALID_LOGIN", "Failed to exchange token: "+err.Error())
+		return
+	}
+
+	client := config.AppConfig.GoogleLoginConfig.Client(ctx, token)
+	response, err := client.Get(GoogleUserInfoURL)
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_TOKEN", "Failed to get user info: "+err.Error())
+		return
+	}
+	defer response.Body.Close()
+
+	userInfo, err := io.ReadAll(response.Body)
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusInternalServerError, "RESPONSE_FAILED", "Failed to read user info response.")
+		return
+	}
+
+	ctx.Data(http.StatusOK, "application/json", userInfo)
 }
 
 func generateRandomState() (string, error) {
