@@ -27,6 +27,7 @@ func SetupRoutes(router *gin.Engine) {
 			authRoutes.POST("/register", handlers.Register)
 			authRoutes.POST("/login", handlers.Login)
 			authRoutes.GET("/google", handlers.GoogleLogin)
+			authRoutes.GET("/google/callback", handlers.GoogleCallback)
 		}
 
 		protectedRoutes := apiV1.Group("/")

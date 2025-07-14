@@ -11,11 +11,12 @@ import (
 )
 
 type Config struct {
-	DBUrl             string
-	Port              string
-	JWTSecretKey      string
-	JWTExpiration     int
-	GoogleLoginConfig oauth2.Config
+	DBUrl               string
+	Port                string
+	JWTSecretKey        string
+	JWTExpiration       int
+	FrontendCallbackURL string
+	GoogleLoginConfig   oauth2.Config
 }
 
 var AppConfig Config
@@ -68,7 +69,12 @@ func LoadConfig() {
 		log.Fatal("GOOGLE_OAUTH_REDIRECT_URL environment variable is not set")
 	}
 
-	AppConfig = Config{DBUrl: dbURL, Port: port, JWTSecretKey: jwtSecretKey, JWTExpiration: jwtExpiration}
+	frontendCallbackURL := os.Getenv("FRONTEND_CALLBACK_URL")
+	if frontendCallbackURL == "" {
+		log.Fatal("FRONTEND_CALLBACK_URL environment variable is not set")
+	}
+
+	AppConfig = Config{DBUrl: dbURL, Port: port, JWTSecretKey: jwtSecretKey, JWTExpiration: jwtExpiration, FrontendCallbackURL: frontendCallbackURL}
 	AppConfig.GoogleLoginConfig = oauth2.Config{
 		ClientID:     googleOauthClientId,
 		ClientSecret: googleOauthClientSecret,

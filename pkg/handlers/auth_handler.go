@@ -5,8 +5,12 @@ import (
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/services"
 	"brainloop-api/pkg/utils"
+	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -60,6 +64,60 @@ func GoogleLogin(ctx *gin.Context) {
 	ctx.SetCookie("oauthstate", state, int(10*time.Minute.Seconds()), "/api/v1/auth/google", "", true, true)
 	url := config.AppConfig.GoogleLoginConfig.AuthCodeURL(state)
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func GoogleCallback(ctx *gin.Context) {
+	stateFromURL := ctx.Query("state")
+	stateFromCookie, err := ctx.Cookie("oauthstate")
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "STATE_COOKIE_MISSING", "Session state is missing or expired. Please try logging in again.")
+		return
+	}
+	if stateFromURL != stateFromCookie {
+		utils.SendContextError(ctx, http.StatusUnauthorized, "STATE_MISMATCH", "Invalid state parameter. CSRF attempt suspected.")
+		return
+	}
+
+	code := ctx.Query("code")
+	oauthToken, err := config.AppConfig.GoogleLoginConfig.Exchange(context.Background(), code)
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusUnauthorized, "TOKEN_EXCHANGE_FAILED", "Failed to exchange authorization code for token: "+err.Error())
+		return
+	}
+
+	client := config.AppConfig.GoogleLoginConfig.Client(ctx, oauthToken)
+	response, err := client.Get(models.GoogleUserInfoURL)
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusBadGateway, "GOOGLE_API_FAILED", "Failed to contact Google's services: "+err.Error())
+		return
+	}
+	defer response.Body.Close()
+
+	userInfoBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusInternalServerError, "RESPONSE_READ_FAILED", "Failed to read user info response from Google.")
+		return
+	}
+
+	var userInfo models.GoogleUserInfo
+	if err := json.Unmarshal(userInfoBytes, &userInfo); err != nil {
+		utils.SendContextError(ctx, http.StatusInternalServerError, "JSON_UNMARSHAL_FAILED", "Failed to parse user info from Google.")
+		return
+	}
+
+	user, errResp := services.FindOrCreateUserByGoogle(&userInfo)
+	if errResp != nil {
+		ctx.JSON(errResp.StatusCode, errResp)
+		return
+	}
+
+	token, errResp := utils.GenerateToken(user)
+	if errResp != nil {
+		ctx.JSON(errResp.StatusCode, errResp)
+		return
+	}
+	redirectURL := fmt.Sprintf("%s?token=%s", config.AppConfig.FrontendCallbackURL, token.Token)
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
 func generateRandomState() (string, error) {
