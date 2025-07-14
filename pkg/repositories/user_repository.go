@@ -41,3 +41,16 @@ func ActivateUser(user *models.User) error {
 	result := db.Model(&user).Updates(updates)
 	return result.Error
 }
+
+func UpdateUserVerification(user *models.User) error {
+	db := database.GetDB()
+
+	updates := map[string]interface{}{
+		"is_email_verified":             user.IsEmailVerified,
+		"verification_token":            user.VerificationToken,
+		"verification_token_expires_at": user.VerificationTokenExpiresAt,
+	}
+
+	result := db.Model(&user).Updates(updates)
+	return result.Error
+}

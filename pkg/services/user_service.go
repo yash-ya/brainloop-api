@@ -1,6 +1,7 @@
 package services
 
 import (
+	"brainloop-api/pkg/email"
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/repositories"
 	"brainloop-api/pkg/utils"
@@ -50,6 +51,31 @@ func VerifyUserEmail(token string) *models.ErrorResponse {
 
 	if err := repositories.ActivateUser(user); err != nil {
 		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to activate user account.")
+	}
+
+	return nil
+}
+
+func ResendVerificationEmail(userEmail string) *models.ErrorResponse {
+	existingUser, err := repositories.FindUserByEmail(userEmail)
+	if err != nil {
+		return utils.SendError(http.StatusNotFound, "USER_NOT_FOUND", "No account found with that email address.")
+	}
+
+	if existingUser.IsEmailVerified {
+		return utils.SendError(http.StatusBadRequest, "ALREADY_VERIFIED", "This email address has already been verified.")
+	}
+
+	existingUser.IsEmailVerified = false
+	existingUser.VerificationToken, _ = utils.GenerateSecurePassword()
+	existingUser.VerificationTokenExpiresAt = time.Now().UTC().Add(30 * time.Minute)
+
+	if err := repositories.UpdateUserVerification(existingUser); err != nil {
+		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to update user verification details.")
+	}
+
+	if err := email.SendVerificationEmail(existingUser.Email, existingUser.VerificationToken); err != nil {
+		return utils.SendError(http.StatusInternalServerError, "EMAIL_SEND_FAILED", "Failed to send new verification email.")
 	}
 
 	return nil
