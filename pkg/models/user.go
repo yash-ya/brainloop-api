@@ -10,3 +10,9 @@ type User struct {
 	Password  string     `gorm:"not null"`
 	Questions []Question `gorm:"foreignKey:UserID"`
 }
+
+type GoogleUserInfo struct {
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+}

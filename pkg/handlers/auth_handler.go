@@ -8,6 +8,8 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -70,36 +72,57 @@ func GoogleCallback(ctx *gin.Context) {
 	stateFromURL := ctx.Query("state")
 	stateFromCookie, err := ctx.Cookie("oauthstate")
 	if err != nil {
-		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_SESSION", "Invalid session state. Cookie not found.")
+		utils.SendContextError(ctx, http.StatusBadRequest, "STATE_COOKIE_MISSING", "Session state is missing or expired. Please try logging in again.")
 		return
 	}
 	if stateFromURL != stateFromCookie {
-		utils.SendContextError(ctx, http.StatusUnauthorized, "INVALID_LOGIN", "Invalid state parameter. CSRF attack suspected.")
+		utils.SendContextError(ctx, http.StatusUnauthorized, "STATE_MISMATCH", "Invalid state parameter. CSRF attempt suspected.")
 		return
 	}
 
 	code := ctx.Query("code")
-	token, err := config.AppConfig.GoogleLoginConfig.Exchange(context.Background(), code)
+	oauthToken, err := config.AppConfig.GoogleLoginConfig.Exchange(context.Background(), code)
 	if err != nil {
-		utils.SendContextError(ctx, http.StatusUnauthorized, "INVALID_LOGIN", "Failed to exchange token: "+err.Error())
+		utils.SendContextError(ctx, http.StatusUnauthorized, "TOKEN_EXCHANGE_FAILED", "Failed to exchange authorization code for token: "+err.Error())
 		return
 	}
 
-	client := config.AppConfig.GoogleLoginConfig.Client(ctx, token)
+	client := config.AppConfig.GoogleLoginConfig.Client(ctx, oauthToken)
 	response, err := client.Get(GoogleUserInfoURL)
 	if err != nil {
-		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_TOKEN", "Failed to get user info: "+err.Error())
+		utils.SendContextError(ctx, http.StatusBadGateway, "GOOGLE_API_FAILED", "Failed to contact Google's services: "+err.Error())
 		return
 	}
 	defer response.Body.Close()
 
-	userInfo, err := io.ReadAll(response.Body)
+	userInfoBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		utils.SendContextError(ctx, http.StatusInternalServerError, "RESPONSE_FAILED", "Failed to read user info response.")
+		utils.SendContextError(ctx, http.StatusInternalServerError, "RESPONSE_READ_FAILED", "Failed to read user info response from Google.")
 		return
 	}
 
-	ctx.Data(http.StatusOK, "application/json", userInfo)
+	var userInfo models.GoogleUserInfo
+	if err := json.Unmarshal(userInfoBytes, &userInfo); err != nil {
+		utils.SendContextError(ctx, http.StatusInternalServerError, "JSON_UNMARSHAL_FAILED", "Failed to parse user info from Google.")
+		return
+	}
+
+	user, errResp := services.FindOrCreateUserByGoogle(&userInfo)
+	if errResp != nil {
+		ctx.JSON(errResp.StatusCode, errResp)
+		return
+	}
+
+	token, errResp := utils.GenerateToken(user)
+	if errResp != nil {
+		ctx.JSON(errResp.StatusCode, errResp)
+		return
+	}
+
+	frontendCallbackURL := "http://localhost:3000/auth/callback"
+	redirectURL := fmt.Sprintf("%s?token=%s", frontendCallbackURL, token.Token)
+
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
 func generateRandomState() (string, error) {
