@@ -17,8 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const GoogleUserInfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
-
 func Register(ctx *gin.Context) {
 	var user models.User
 	if err := ctx.ShouldBind(&user); err != nil {
@@ -88,7 +86,7 @@ func GoogleCallback(ctx *gin.Context) {
 	}
 
 	client := config.AppConfig.GoogleLoginConfig.Client(ctx, oauthToken)
-	response, err := client.Get(GoogleUserInfoURL)
+	response, err := client.Get(models.GoogleUserInfoURL)
 	if err != nil {
 		utils.SendContextError(ctx, http.StatusBadGateway, "GOOGLE_API_FAILED", "Failed to contact Google's services: "+err.Error())
 		return
@@ -118,10 +116,7 @@ func GoogleCallback(ctx *gin.Context) {
 		ctx.JSON(errResp.StatusCode, errResp)
 		return
 	}
-
-	frontendCallbackURL := "http://localhost:3000/auth/callback"
-	redirectURL := fmt.Sprintf("%s?token=%s", frontendCallbackURL, token.Token)
-
+	redirectURL := fmt.Sprintf("%s?token=%s", config.AppConfig.FrontendCallbackURL, token.Token)
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
