@@ -58,6 +58,10 @@ func LoginUser(email, password string) (*models.Token, *models.ErrorResponse) {
 		return nil, utils.SendError(http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid email or password")
 	}
 
+	if !user.IsEmailVerified {
+		return nil, utils.SendError(http.StatusForbidden, "EMAIL_VERIFICATION_PENDING", "Please verify your email address before logging in.")
+	}
+
 	token, errResp := utils.GenerateToken(user)
 	if errResp != nil {
 		return nil, errResp
