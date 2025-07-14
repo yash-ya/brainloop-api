@@ -16,6 +16,6 @@ func CalculateNextRevisionDate(srsLevel int) time.Time {
 		intervalDays = srsIntervals[0]
 	}
 
-	nextDate := time.Now().AddDate(0, 0, intervalDays)
+	nextDate := time.Now().UTC().AddDate(0, 0, intervalDays)
 	return nextDate
 }
