@@ -1,14 +1,21 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type User struct {
 	gorm.Model
 
-	Username  string     `gorm:"uniqueIndex;not null"`
-	Email     string     `gorm:"uniqueIndex;not null"`
-	Password  string     `gorm:"not null"`
-	Questions []Question `gorm:"foreignKey:UserID"`
+	Username                   string `gorm:"uniqueIndex;not null"`
+	Email                      string `gorm:"uniqueIndex;not null"`
+	Password                   string `gorm:"not null"`
+	IsEmailVerified            bool
+	VerificationToken          string
+	VerificationTokenExpiresAt time.Time
+	Questions                  []Question `gorm:"foreignKey:UserID"`
 }
 
 type GoogleUserInfo struct {

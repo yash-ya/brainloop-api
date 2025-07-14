@@ -120,6 +120,43 @@ func GoogleCallback(ctx *gin.Context) {
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+func VerifyEmail(ctx *gin.Context) {
+	var req VerifyEmailRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_REQUEST", "Token is missing or request is malformed.")
+		return
+	}
+
+	errResp := services.VerifyUserEmail(req.Token)
+	if errResp != nil {
+		ctx.JSON(errResp.StatusCode, errResp)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Email verified successfully. You can now log in."})
+}
+
+func ResendVerificationEmail(ctx *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_REQUEST", "Email is missing or request is malformed.")
+		return
+	}
+
+	if err := services.ResendVerificationEmail(req.Email); err != nil {
+		ctx.JSON(err.StatusCode, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Verification email sent successfully."})
+}
+
 func generateRandomState() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)

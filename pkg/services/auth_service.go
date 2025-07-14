@@ -1,13 +1,14 @@
 package services
 
 import (
+	"brainloop-api/pkg/email"
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/repositories"
 	"brainloop-api/pkg/utils"
-	"crypto/rand"
-	"encoding/hex"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -26,11 +27,23 @@ func CreateUser(user *models.User) *models.ErrorResponse {
 	if err != nil {
 		return utils.SendError(http.StatusInternalServerError, "PASSWORD_HASH_FAILED", "Error hashing password")
 	}
+
+	user.IsEmailVerified = false
+	user.VerificationToken, _ = utils.GenerateSecurePassword()
+	user.VerificationTokenExpiresAt = time.Now().UTC().Add(30 * time.Minute)
 	user.Password = string(hashedPassword)
+
 	err = repositories.CreateUser(user)
 	if err != nil {
 		return utils.SendError(http.StatusInternalServerError, "REGISTRATION_FAILED", "Failed to register user")
 	}
+
+	go func() {
+		if err := email.SendVerificationEmail(user.Email, user.VerificationToken); err != nil {
+			log.Printf("ERROR: Failed to send verification email to %s: %v\n", user.Email, err)
+		}
+	}()
+
 	return nil
 }
 
@@ -45,46 +58,14 @@ func LoginUser(email, password string) (*models.Token, *models.ErrorResponse) {
 		return nil, utils.SendError(http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid email or password")
 	}
 
+	if !user.IsEmailVerified {
+		return nil, utils.SendError(http.StatusForbidden, "EMAIL_VERIFICATION_PENDING", "Please verify your email address before logging in.")
+	}
+
 	token, errResp := utils.GenerateToken(user)
 	if errResp != nil {
 		return nil, errResp
 	}
 
 	return token, nil
-}
-
-func FindOrCreateUserByGoogle(userInfo *models.GoogleUserInfo) (*models.User, *models.ErrorResponse) {
-	existingUser, err := repositories.FindUserByEmail(userInfo.Email)
-	if err == nil {
-		return existingUser, nil
-	}
-
-	if err != gorm.ErrRecordNotFound {
-		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Error checking for existing user.")
-	}
-
-	placeholderPassword, err := generateSecurePassword()
-	if err != nil {
-		return nil, utils.SendError(http.StatusInternalServerError, "SERVER_ERROR", "Could not generate secure password.")
-	}
-
-	newUser := &models.User{
-		Username: userInfo.Name,
-		Email:    userInfo.Email,
-		Password: placeholderPassword,
-	}
-
-	if err := repositories.CreateUser(newUser); err != nil {
-		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to create new user.")
-	}
-
-	return newUser, nil
-}
-
-func generateSecurePassword() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
 }
