@@ -15,6 +15,7 @@ func LogRevision(revision *models.RevisionHistory) (*models.RevisionHistory, *mo
 		return nil, utils.SendError(http.StatusNotFound, "NOT_FOUND", "Question not found.")
 	}
 
+	revision.RevisedAt = time.Now().UTC()
 	if err := repositories.LogRevision(revision); err != nil {
 		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to log revision.")
 	}
