@@ -1,9 +1,11 @@
 package services
 
 import (
+	"brainloop-api/pkg/email"
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/repositories"
 	"brainloop-api/pkg/utils"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -35,6 +37,13 @@ func CreateUser(user *models.User) *models.ErrorResponse {
 	if err != nil {
 		return utils.SendError(http.StatusInternalServerError, "REGISTRATION_FAILED", "Failed to register user")
 	}
+
+	go func() {
+		if err := email.SendVerificationEmail(user.Email, user.VerificationToken); err != nil {
+			log.Printf("ERROR: Failed to send verification email to %s: %v\n", user.Email, err)
+		}
+	}()
+
 	return nil
 }
 
@@ -55,8 +64,4 @@ func LoginUser(email, password string) (*models.Token, *models.ErrorResponse) {
 	}
 
 	return token, nil
-}
-
-func sendVerificationEmail(email, verificationToken string) {
-
 }
