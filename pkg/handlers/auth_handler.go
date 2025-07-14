@@ -62,6 +62,21 @@ func GoogleLogin(ctx *gin.Context) {
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+func GoogleCallback(ctx *gin.Context) {
+	stateFromURL := ctx.Query("state")
+	stateFromCookie, err := ctx.Cookie("oauthstate")
+	if err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_SESSION", "Invalid session state. Cookie not found.")
+		return
+	}
+
+	if stateFromURL != stateFromCookie {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid state parameter. CSRF attack suspected."})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "State verified successfully!"})
+}
+
 func generateRandomState() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
