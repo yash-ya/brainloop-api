@@ -30,6 +30,11 @@ func SetupRoutes(router *gin.Engine) {
 			authRoutes.GET("/google/callback", handlers.GoogleCallback)
 		}
 
+		userRoutes := apiV1.Group("/users")
+		{
+			userRoutes.POST("/verify", handlers.VerifyEmail)
+		}
+
 		protectedRoutes := apiV1.Group("/")
 		protectedRoutes.Use(middleware.AuthMiddleware())
 		{

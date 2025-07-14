@@ -3,6 +3,8 @@ package utils
 import (
 	"brainloop-api/pkg/config"
 	"brainloop-api/pkg/models"
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"time"
 
@@ -36,4 +38,12 @@ func GenerateToken(user *models.User) (*models.Token, *models.ErrorResponse) {
 		ExpiresAt: expirationTimeUTC,
 	}
 	return &tokenResponse, nil
+}
+
+func GenerateSecurePassword() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

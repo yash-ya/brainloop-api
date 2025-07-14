@@ -16,6 +16,11 @@ type Config struct {
 	JWTSecretKey        string
 	JWTExpiration       int
 	FrontendCallbackURL string
+	FrontendURL         string
+	SMTPHost            string
+	SMTPPort            int
+	SMTPUsername        string
+	SMTPPassword        string
 	GoogleLoginConfig   oauth2.Config
 }
 
@@ -74,7 +79,48 @@ func LoadConfig() {
 		log.Fatal("FRONTEND_CALLBACK_URL environment variable is not set")
 	}
 
-	AppConfig = Config{DBUrl: dbURL, Port: port, JWTSecretKey: jwtSecretKey, JWTExpiration: jwtExpiration, FrontendCallbackURL: frontendCallbackURL}
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		log.Fatal("FRONTEND_URL environment variable is not set")
+	}
+
+	smtpPortStr := os.Getenv("SMTP_PORT")
+	if smtpPortStr == "" {
+		log.Fatal("SMTP_PORT environment variable is not set")
+	}
+
+	smtpPort, err := strconv.Atoi(smtpPortStr)
+	if err != nil {
+		log.Fatal("Invalid SMTP_PORT value. Must be an integer.")
+	}
+
+	smtpHost := os.Getenv("SMTP_HOST")
+	if smtpHost == "" {
+		log.Fatal("SMTP_HOST environment variable is not set")
+	}
+
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	if smtpUsername == "" {
+		log.Fatal("SMTP_USERNAME environment variable is not set")
+	}
+
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	if smtpPassword == "" {
+		log.Fatal("SMTP_PASSWORD environment variable is not set")
+	}
+
+	AppConfig = Config{
+		DBUrl:               dbURL,
+		Port:                port,
+		JWTSecretKey:        jwtSecretKey,
+		JWTExpiration:       jwtExpiration,
+		FrontendCallbackURL: frontendCallbackURL,
+		SMTPHost:            smtpHost,
+		SMTPPort:            smtpPort,
+		SMTPUsername:        smtpUsername,
+		SMTPPassword:        smtpPassword,
+		FrontendURL:         frontendURL,
+	}
 	AppConfig.GoogleLoginConfig = oauth2.Config{
 		ClientID:     googleOauthClientId,
 		ClientSecret: googleOauthClientSecret,
