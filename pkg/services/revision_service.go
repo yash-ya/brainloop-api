@@ -19,7 +19,7 @@ func LogRevision(revision *models.RevisionHistory) (*models.RevisionHistory, *mo
 		return nil, utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to log revision.")
 	}
 
-	isDue := question.NextRevisionDate == nil || !time.Now().Before(*question.NextRevisionDate)
+	isDue := question.NextRevisionDate == nil || !time.Now().UTC().Before(*question.NextRevisionDate)
 
 	if isDue {
 		newSRSLevel := question.SrsLevel + 1
