@@ -6,13 +6,16 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type Config struct {
-	DBUrl         string
-	Port          string
-	JWTSecretKey  string
-	JWTExpiration int
+	DBUrl             string
+	Port              string
+	JWTSecretKey      string
+	JWTExpiration     int
+	GoogleLoginConfig oauth2.Config
 }
 
 var AppConfig Config
@@ -50,6 +53,29 @@ func LoadConfig() {
 		log.Fatal("Invalid JWT_EXPIRATION_HOURS value. Must be an integer.")
 	}
 
+	googleOauthClientId := os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
+	if googleOauthClientId == "" {
+		log.Fatal("GOOGLE_OAUTH_CLIENT_ID environment variable is not set")
+	}
+
+	googleOauthClientSecret := os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+	if googleOauthClientSecret == "" {
+		log.Fatal("GOOGLE_OAUTH_CLIENT_SECRET environment variable is not set")
+	}
+
+	googleOauthRedirectURL := os.Getenv("GOOGLE_OAUTH_REDIRECT_URL")
+	if googleOauthRedirectURL == "" {
+		log.Fatal("GOOGLE_OAUTH_REDIRECT_URL environment variable is not set")
+	}
+
 	AppConfig = Config{DBUrl: dbURL, Port: port, JWTSecretKey: jwtSecretKey, JWTExpiration: jwtExpiration}
+	AppConfig.GoogleLoginConfig = oauth2.Config{
+		ClientID:     googleOauthClientId,
+		ClientSecret: googleOauthClientSecret,
+		RedirectURL:  googleOauthRedirectURL,
+		Scopes: []string{"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile"},
+		Endpoint: google.Endpoint,
+	}
 	log.Println("Configuration loaded successfully")
 }
