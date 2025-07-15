@@ -157,7 +157,7 @@ func ResendVerificationEmail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Verification email sent successfully."})
 }
 
-func ForgetPassword(ctx *gin.Context) {
+func ForgotPassword(ctx *gin.Context) {
 	var req struct {
 		Email string `json:"email"`
 	}
