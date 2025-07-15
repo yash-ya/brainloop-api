@@ -54,3 +54,15 @@ func UpdateUserVerification(user *models.User) error {
 	result := db.Model(&user).Updates(updates)
 	return result.Error
 }
+
+func UpdatePasswordToken(user *models.User) error {
+	db := database.GetDB()
+
+	updates := map[string]interface{}{
+		"password_reset_token":            user.PasswordResetToken,
+		"password_reset_token_expires_at": user.PasswordResetTokenExpiresAt,
+	}
+
+	result := db.Model(&user).Updates(updates)
+	return result.Error
+}

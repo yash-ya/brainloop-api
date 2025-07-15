@@ -5,6 +5,7 @@ import (
 	"brainloop-api/pkg/models"
 	"brainloop-api/pkg/repositories"
 	"brainloop-api/pkg/utils"
+	"log"
 	"net/http"
 	"time"
 
@@ -68,7 +69,7 @@ func ResendVerificationEmail(userEmail string) *models.ErrorResponse {
 
 	existingUser.IsEmailVerified = false
 	existingUser.VerificationToken, _ = utils.GenerateSecurePassword()
-	existingUser.VerificationTokenExpiresAt = time.Now().UTC().Add(30 * time.Minute)
+	existingUser.VerificationTokenExpiresAt = time.Now().UTC().Add(4 * time.Hour)
 
 	if err := repositories.UpdateUserVerification(existingUser); err != nil {
 		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to update user verification details.")
@@ -76,6 +77,27 @@ func ResendVerificationEmail(userEmail string) *models.ErrorResponse {
 
 	if err := email.SendVerificationEmail(existingUser.Email, existingUser.VerificationToken); err != nil {
 		return utils.SendError(http.StatusInternalServerError, "EMAIL_SEND_FAILED", "Failed to send new verification email.")
+	}
+
+	return nil
+}
+
+func RequestPasswordReset(userEmail string) *models.ErrorResponse {
+	existingUser, err := repositories.FindUserByEmail(userEmail)
+	if err != nil {
+		return nil
+	}
+	existingUser.PasswordResetToken, _ = utils.GenerateSecurePassword()
+	existingUser.PasswordResetTokenExpiresAt = time.Now().UTC().Add(30 * time.Minute)
+
+	if err := repositories.UpdatePasswordToken(existingUser); err != nil {
+		log.Printf("ERROR: Failed to update password token for user %s: %v", userEmail, err)
+		return nil
+	}
+
+	if err := email.SendPasswordResetEmail(existingUser.Email, existingUser.PasswordResetToken); err != nil {
+		log.Printf("ERROR: Failed to send password reset email for user %s: %v", userEmail, err)
+		return nil
 	}
 
 	return nil

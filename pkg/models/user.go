@@ -9,13 +9,15 @@ import (
 type User struct {
 	gorm.Model
 
-	Username                   string `gorm:"uniqueIndex;not null"`
-	Email                      string `gorm:"uniqueIndex;not null"`
-	Password                   string `gorm:"not null"`
-	IsEmailVerified            bool
-	VerificationToken          string
-	VerificationTokenExpiresAt time.Time
-	Questions                  []Question `gorm:"foreignKey:UserID"`
+	Username                    string `gorm:"uniqueIndex;not null"`
+	Email                       string `gorm:"uniqueIndex;not null"`
+	Password                    string `gorm:"not null"`
+	IsEmailVerified             bool
+	VerificationToken           string
+	VerificationTokenExpiresAt  time.Time
+	PasswordResetToken          string
+	PasswordResetTokenExpiresAt time.Time
+	Questions                   []Question `gorm:"foreignKey:UserID"`
 }
 
 type GoogleUserInfo struct {

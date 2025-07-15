@@ -33,6 +33,7 @@ func SetupRoutes(router *gin.Engine) {
 		userRoutes := apiV1.Group("/users")
 		{
 			userRoutes.POST("/verify", handlers.VerifyEmail)
+			userRoutes.POST("/forget-password", handlers.ForgetPassword)
 		}
 
 		protectedRoutes := apiV1.Group("/")

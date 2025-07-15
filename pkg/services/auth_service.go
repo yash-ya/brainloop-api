@@ -30,7 +30,7 @@ func CreateUser(user *models.User) *models.ErrorResponse {
 
 	user.IsEmailVerified = false
 	user.VerificationToken, _ = utils.GenerateSecurePassword()
-	user.VerificationTokenExpiresAt = time.Now().UTC().Add(30 * time.Minute)
+	user.VerificationTokenExpiresAt = time.Now().UTC().Add(4 * time.Hour)
 	user.Password = string(hashedPassword)
 
 	err = repositories.CreateUser(user)

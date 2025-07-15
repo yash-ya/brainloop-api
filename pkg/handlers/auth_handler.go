@@ -157,6 +157,18 @@ func ResendVerificationEmail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Verification email sent successfully."})
 }
 
+func ForgetPassword(ctx *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_REQUEST", "Email is missing or request is malformed.")
+		return
+	}
+	_ = services.RequestPasswordReset(req.Email)
+	ctx.JSON(http.StatusOK, gin.H{"message": "If an account with that email exists, a password reset link has been sent."})
+}
+
 func generateRandomState() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
