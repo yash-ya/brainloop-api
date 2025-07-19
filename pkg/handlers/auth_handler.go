@@ -169,6 +169,26 @@ func ForgotPassword(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "If an account with that email exists, a password reset link has been sent."})
 }
 
+func ResetPassword(ctx *gin.Context) {
+	var req struct {
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.SendContextError(ctx, http.StatusBadRequest, "INVALID_REQUEST", "Token or new password is missing or invalid.")
+		return
+	}
+
+	errResp := services.ResetPassword(req.Token, req.NewPassword)
+	if errResp != nil {
+		ctx.JSON(errResp.StatusCode, errResp)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Password has been reset successfully. You can now log in."})
+}
+
 func generateRandomState() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)

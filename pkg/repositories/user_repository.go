@@ -66,3 +66,25 @@ func UpdatePasswordToken(user *models.User) error {
 	result := db.Model(&user).Updates(updates)
 	return result.Error
 }
+
+func FindUserByPasswordResetToken(token string) (*models.User, error) {
+	db := database.GetDB()
+	var user models.User
+	if err := db.Where("password_reset_token = ?", token).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func UpdateUserPassword(userID uint, newHashedPassword string) error {
+	db := database.GetDB()
+
+	updates := map[string]interface{}{
+		"password":                        newHashedPassword,
+		"password_reset_token":            "",
+		"password_reset_token_expires_at": time.Time{},
+	}
+
+	result := db.Model(&models.User{}).Where("id = ?", userID).Updates(updates)
+	return result.Error
+}

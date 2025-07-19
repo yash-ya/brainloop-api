@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -98,6 +99,28 @@ func RequestPasswordReset(userEmail string) *models.ErrorResponse {
 	if err := email.SendPasswordResetEmail(existingUser.Email, existingUser.PasswordResetToken); err != nil {
 		log.Printf("ERROR: Failed to send password reset email for user %s: %v", userEmail, err)
 		return nil
+	}
+
+	return nil
+}
+
+func ResetPassword(token, newPassword string) *models.ErrorResponse {
+	user, err := repositories.FindUserByPasswordResetToken(token)
+	if err != nil {
+		return utils.SendError(http.StatusBadRequest, "INVALID_TOKEN", "This password reset link is invalid.")
+	}
+
+	if time.Now().UTC().After(user.PasswordResetTokenExpiresAt) {
+		return utils.SendError(http.StatusBadRequest, "TOKEN_EXPIRED", "This password reset link has expired. Please request a new one.")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return utils.SendError(http.StatusInternalServerError, "SERVER_ERROR", "Failed to secure new password.")
+	}
+
+	if err := repositories.UpdateUserPassword(user.ID, string(hashedPassword)); err != nil {
+		return utils.SendError(http.StatusInternalServerError, "DATABASE_ERROR", "Failed to update password.")
 	}
 
 	return nil
