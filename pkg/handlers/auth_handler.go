@@ -195,5 +195,6 @@ func generateRandomState() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return base64.URLEncoding.EncodeToString(b), nil
 }
